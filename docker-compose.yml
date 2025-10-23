@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  neuroscience-modeling:
+    build: .
+    container_name: neuroscience-modeling
+    image: neuroscience-modeling:latest
+    volumes:
+      - ./outputs:/app/outputs
+      - ./data:/app/data
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: python main.py
+    stdin_open: true
+    tty: true
