@@ -19,7 +19,7 @@ class Interface(ABC):
         pass
     
     @abstractmethod
-    def run(self, name: str) -> bool:
+    def run(self):
         """
         Run the interface with given name
         
