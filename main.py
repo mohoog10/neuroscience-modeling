@@ -48,51 +48,6 @@ def main():
     manager = Manager(interface, registry)
     results = manager.run_pipeline(interface.model_type.get(),mode='train',config=interface.result)
     print(results)
-    #print("\nAvailable models:", manager.get_available_models())
-    #print("\n" + "="*60 + "\n")
-    
-    # Example usage - Run different pipelines
-    #if len(sys.argv) > 1:
-        # CLI mode with arguments
-        #interface.run("CLI Run")
-    #    print('yo')
-    #else:
-        # Demo mode - showcase both models
-        #print("Running in DEMO mode...\n")
-        
-        # Demo Model1
-        #config1 = {
-        #    'learning_rate': 0.01,
-        #    'epochs': 50
-        #}
-        #results1 = manager.run_pipeline('Model1', mode='train', config=config1)
-        
-        # Validate Model1
-        #manager.validate_model()
-        
-        # Test Model1
-        #anager.test_model()
-        
-        #print("\n" + "-"*60 + "\n")
-        
-        # Demo Model2
-       #config2 = {
-        #    'learning_rate': 0.001,
-        #   'epochs': 30,
-        #    'batch_size': 32
-        #}
-        #esults2 = manager.run_pipeline('Model2', mode='train', config=config2)
-        
-        # Validate Model2
-        #manager.validate_model()
-        
-        # Make predictions with Model2
-        #manager.predict_with_model()
-        
-        #print("\n" + "="*60)
-        #print("Demo completed successfully!")
-        #print("="*60 + "\n")
-
 
 if __name__ == "__main__":
     main()

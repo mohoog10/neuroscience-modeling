@@ -59,9 +59,9 @@ class InterfaceCLI(Interface):
             print(f"Model: {args.model if args.model else 'default'}")
             print(f"Config: {args.config if args.config else 'none'}")
             
-            return True
+            return args
         except SystemExit:
-            return False
+            return None
     
     def display_help(self):
         """Display help information"""

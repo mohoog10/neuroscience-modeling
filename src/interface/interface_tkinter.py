@@ -60,6 +60,7 @@ class InterFaceTkinter(Interface):
                 
                 dlg = InterFaceKMeans(self.root)
                 new_win = dlg.window
+                #self.root.withdraw()
                 dlg.setup()
 
                 self.result = dlg.config

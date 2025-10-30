@@ -1,0 +1,55 @@
+{
+  "data": {
+    "filepath": "C://LIA2025LiU//Exam1//Project//Project//ExamFeb//Data//wine_fraud.csv",
+    "target_column": "quality",
+    "test_size": 0.2,
+    "val_size": 0.1,
+    "random_state": 0,
+    "dummy": true
+  },
+
+  "preprocessor": {
+    "scaler": true,
+    "dummy": true,
+    "categorical_columns": "type"
+  },
+
+  "save": {
+    "enabled": true,
+    "dir": "artifacts",
+    "overwrite": false
+  },
+
+  "models": [
+    {
+      "name": "KMeans",
+      "type": "kmeans",
+      "n_clusters": 2,
+      "random_state": 0,
+      "scaler": true,
+      "fit_predict_on": "test"
+    },
+
+    {
+      "name": "LogisticRegression",
+      "type": "logistic",
+      "C": 1.0,
+      "penalty": "l2",
+      "solver": "lbfgs",
+      "max_iter": 1000,
+      "scaler": true,
+      "fit_predict_on": "val"
+    },
+
+    {
+      "name": "RandomForest",
+      "type": "random_forest",
+      "n_estimators": 100,
+      "max_depth": null,
+      "random_state": 0,
+      "scaler": false,
+      "fit_predict_on": "val"
+    }
+  ]
+
+}

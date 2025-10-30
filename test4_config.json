@@ -1,0 +1,133 @@
+{
+  "data": {
+    "filepath": "C://LIA2025LiU//Exam1//Project//Project//ExamFeb//Data//wine_fraud.csv",
+    "target_column": "quality",
+    "test_size": 0.2,
+    "val_size": 0.1,
+    "random_state": 0,
+    "dummy": true
+  },
+
+  "preprocessor": {
+    "scaler": true,
+    "dummy": true,
+    "categorical_columns": "type"
+  },
+
+  "save": {
+    "enabled": true,
+    "dir": "artifacts",
+    "overwrite": false
+  },
+
+  "models": [
+    {
+      "name": "KMeans",
+      "type": "kmeans",
+      "n_clusters": 2,
+      "random_state": 0,
+      "scaler": true,
+      "fit_predict_on": "test"
+    },
+
+    {
+      "name": "LogisticRegression",
+      "type": "logistic",
+      "C": 1.0,
+      "penalty": "l2",
+      "solver": "lbfgs",
+      "max_iter": 1000,
+      "scaler": true,
+      "fit_predict_on": "val"
+    },
+
+    {
+      "name": "RandomForest",
+      "type": "random_forest",
+      "n_estimators": 100,
+      "max_depth": null,
+      "random_state": 0,
+      "scaler": false,
+      "fit_predict_on": "val"
+    },
+
+    {
+      "name": "KerasClassifier",
+      "type": "keras",
+      "build_mode": "default",
+      "scaler": true,
+      "epochs": 30,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "output_activation": null,
+      "loss": null,
+      "metrics": [
+        "accuracy"
+      ],
+      "fit_predict_on": "test",
+      "notes": "Use build_mode 'config' and supply a 'layers' list to build a custom architecture"
+    },
+
+    {
+      "name": "KerasCustom",
+      "type": "keras",
+      "build_mode": "config",
+      "scaler": true,
+      "epochs": 50,
+      "batch_size": 32,
+      "learning_rate": 0.0005,
+      "output_activation": null,
+      "loss": null,
+      "metrics": [
+        "accuracy"
+      ],
+      "fit_predict_on": "test",
+      "layers": [
+        {
+          "type": "Dense",
+          "units": 256,
+          "activation": "relu"
+        },
+        {
+          "type": "BatchNormalization"
+        },
+        {
+          "type": "Dropout",
+          "rate": 0.4
+        },
+        {
+          "type": "Dense",
+          "units": 128,
+          "activation": "relu"
+        },
+        {
+          "type": "Dropout",
+          "rate": 0.25
+        },
+        {
+        "name": "KerasConv1D",
+        "type": "keras",
+        "build_mode": "config",
+        "scaler": true,
+        "epochs": 30,
+        "batch_size": 64,
+        "learning_rate": 0.001,
+        "fit_predict_on": "test",
+        "layers": [
+          {"type": "Reshape", "target_shape": [128, 1]},
+          {"type": "Conv1D", "filters": 64, "kernel_size": 5, "activation": "relu", "padding": "same"},
+          {"type": "MaxPooling1D", "pool_size": 2},
+          {"type": "Conv1D", "filters": 128, "kernel_size": 3, "activation": "relu", "padding": "same"},
+          {"type": "MaxPooling1D", "pool_size": 2},
+          {"type": "Flatten"},
+          {"type": "Dense", "units": 128, "activation": "relu"},
+          {"type": "Dropout", "rate": 0.4}
+        ]
+      }
+
+        
+      ],
+      "notes": "Example configurable MLP. Final output layer is added automatically by the model based on number of classes."
+    }
+  ]
+}
