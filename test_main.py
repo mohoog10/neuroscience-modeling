@@ -65,18 +65,18 @@ def main():
 
     # -- Registry and model registration
     registry = ModelRegistry()
-    registry.register_model("KMeans", KMeansModel)
+    registry.register_model("kmeans", KMeansModel)
     # register supervised models if their modules exist
     try:
-        registry.register_model("LogisticRegression", LogisticRegressionModel)
+        registry.register_model("logistic", LogisticRegressionModel)
     except Exception:
         pass
     try:
-        registry.register_model("RandomForest", RandomForestClassifierModel)
+        registry.register_model("random_forest", RandomForestClassifierModel)
     except Exception:
         pass
     try:
-        registry.register_model("KerasClassifier", KerasClassifierModel)
+        registry.register_model("keras_classifier", KerasClassifierModel)
     except Exception:
         pass
     # -- Preprocessor (single instance)
@@ -112,7 +112,7 @@ def main():
                 selected_cfg = m
                 break
         if selected_cfg is None:
-            print(f"Model '{model_name}' not found in combined_config['models']. Available:", [m.get("name") for m in models_cfg_list])
+            print(f"Model '{model_name}' not found amongst config models. Available:", [m.get("name") for m in models_cfg_list])
             return
     else:
         # backward compat: single model under "model" key
@@ -121,29 +121,28 @@ def main():
         if "name" not in selected_cfg:
             selected_cfg = dict(selected_cfg)
             selected_cfg["name"] = model_name
-
     # inject runtime splits and preprocessor
     runtime_cfg = inject_splits_and_preprocessor(selected_cfg, pre, splits)
-
+    print(runtime_cfg)
     # run pipeline
-    try:
-        results = manager.run_pipeline(model_name, mode=mode, config=runtime_cfg)
-    except Exception as exc:
-        print("Pipeline run failed:", exc)
-        return
+    #try:
+    results = manager.run_pipeline(selected_cfg['type'], mode=mode, config=runtime_cfg)
+    #except Exception as exc:
+    #    print("Pipeline run failed:", exc)
+    #    return
 
     print("Training results:", results)
 
     # run predict/validate/test in a safe sequence if requested or by default
     #try:
         # Predict (if model supports it)
-    pred_res = manager.run_pipeline(model_name, mode="predict", config=runtime_cfg)
+    pred_res = manager.run_pipeline(selected_cfg['type'], mode="predict", config=runtime_cfg)
     print("Prediction results:", pred_res)
     #except Exception as exc:
     #    print("Predict step failed (continuing):", exc)
 
    #try:
-    val_res = manager.run_pipeline(model_name, mode="validate", config=runtime_cfg)
+    val_res = manager.run_pipeline(selected_cfg['type'], mode="validate", config=runtime_cfg)
     print("Validation results:", val_res)
     #except Exception as exc:
     #    print("Validate step failed (continuing):", exc)

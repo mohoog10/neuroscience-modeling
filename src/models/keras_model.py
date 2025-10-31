@@ -1,3 +1,8 @@
+import os
+
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1' 
+
 from typing import Any, Dict, Optional, List
 import numpy as np
 
@@ -6,7 +11,7 @@ import tensorflow as tf
 from tensorflow.keras import layers, models, optimizers, losses, metrics
 from sklearn.preprocessing import StandardScaler
 from sklearn.exceptions import NotFittedError
-from sklearn.metrics import accuracy_score, f1_score
+from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
 
 # assume Model base class available in your codebase
 from .model import Model   # adjust import to your project's Model base
@@ -81,6 +86,52 @@ class KerasClassifierModel(Model):
             self.config["_internal_scaler"] = scaler
             return scaler.fit_transform(X)
         return scaler.transform(X)
+    
+    def _build_callbacks(self) -> list:
+        """
+        Build a list of Keras callbacks based on self.config.get("callbacks", {}).
+        Accepts either a dict of named callback-configs or a list of callback-config objects.
+        Each callback config is a dict with "type" and params.
+        Example forms:
+        "callbacks": {
+            "reduce_lr": {"type":"ReduceLROnPlateau", "monitor":"val_loss", "factor":0.5, ...},
+            "earlystop": {"type":"EarlyStopping", "monitor":"val_loss", "patience":200, ...}
+        }
+        or
+        "callbacks": [
+            {"type":"ReduceLROnPlateau", ...},
+            {"type":"EarlyStopping", ...}
+        ]
+        """
+        cfg = self.config.get("callbacks")
+        if not cfg:
+            return []
+
+        # normalize to list
+        if isinstance(cfg, dict):
+            items = list(cfg.values())
+        elif isinstance(cfg, list):
+            items = cfg
+        else:
+            return []
+
+        cb_list = []
+        for item in items:
+            typ = item.get("type")
+            params = {k: v for k, v in item.items() if k != "type"}
+            if typ == "ReduceLROnPlateau":
+                cb = keras.callbacks.ReduceLROnPlateau(**params)
+            elif typ == "EarlyStopping":
+                cb = keras.callbacks.EarlyStopping(**params)
+            elif typ == "ModelCheckpoint":
+                cb = keras.callbacks.ModelCheckpoint(**params)
+            elif typ == "CSVLogger":
+                cb = keras.callbacks.CSVLogger(**params)
+            else:
+                # unknown type: skip or log; for safety, skip
+                continue
+            cb_list.append(cb)
+        return cb_list
 
     def _prepare_labels(self, y: np.ndarray) -> np.ndarray:
         """
@@ -106,13 +157,13 @@ class KerasClassifierModel(Model):
         if output_activation is None:
             output_activation = "softmax" if n_classes > 2 else "sigmoid"
 
-        inputs = layers.Input(shape=(input_dim,))
+        inputs = layers.Input(shape=(input_dim,1))
         x = inputs
-
         if self.config.get("build_mode", "default") == "config" and cfg_layers:
             # construct from layers list
             for spec in cfg_layers:
                 typ = spec.get("type", "Dense")
+                #print(typ)
                 if typ == "Dense":
                     units = int(spec.get("units"))
                     act = spec.get("activation", "relu")
@@ -124,6 +175,26 @@ class KerasClassifierModel(Model):
                     x = layers.BatchNormalization()(x)
                 elif typ == "Activation":
                     x = layers.Activation(spec.get("activation", "relu"))(x)
+                elif typ == "Conv1D":
+                    x = layers.Conv1D(filters=int(spec.get("filters", 32)),
+                                  kernel_size=int(spec.get("kernel_size", 3)),
+                                  activation=spec.get("activation", "relu"),
+                                  padding=spec.get("padding", "valid"))(x)
+                elif typ == "Conv2D":
+                    k = spec.get("kernel_size", [3, 3])
+                    x = layers.Conv2D(filters=int(spec.get("filters", 32)),
+                                  kernel_size=tuple(k),
+                                  activation=spec.get("activation", "relu"),
+                                  padding=spec.get("padding", "valid"))(x)
+                elif typ == "MaxPooling1D":
+                    x = layers.MaxPooling1D(pool_size=int(spec.get("pool_size", 2)))(x)
+                elif typ == "MaxPooling2D":
+                    x = layers.MaxPooling2D(pool_size=tuple(spec.get("pool_size", [2, 2])))
+                elif typ == "Reshape":
+                    target_shape = tuple(spec.get("target_shape"))
+                    x = layers.Reshape(target_shape)(x)
+                elif typ == "Flatten":
+                    x = layers.Flatten()(x)
                 else:
                     raise ValueError(f"Unsupported layer type in config: {typ}")
         else:
@@ -186,8 +257,16 @@ class KerasClassifierModel(Model):
             validation_data = (Xv, yv)
 
         # fit model (suppress verbose default to 1)
-        self.history = self.model.fit(Xs, y_idx, epochs=epochs, batch_size=batch_size,
-                                      validation_data=validation_data, verbose=1)
+        cbs = self._build_callbacks()
+
+        use_cbs = bool(self.config.get("callbacks", False)) and bool(cbs)
+
+        self.history = self.model.fit(Xs, y_idx,
+                              epochs=epochs,
+                              batch_size=batch_size,
+                              validation_data=validation_data,
+                              verbose=1,
+                              callbacks=cbs if use_cbs else None)
 
         # saved predictions on train
         if self.model.output_shape[-1] == 1:
@@ -247,6 +326,9 @@ class KerasClassifierModel(Model):
         try:
             res["val_accuracy"] = float(accuracy_score(np.asarray(y_val), preds_labels))
             res["val_f1"] = float(f1_score(np.asarray(y_val), preds_labels, average="weighted"))
+            print("*"*40)
+            print("\nConfusion matrix: \n")
+            print(confusion_matrix(y_true=y_val,y_pred=preds_labels))
         except Exception:
             pass
         return res

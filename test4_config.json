@@ -1,17 +1,17 @@
 {
   "data": {
-    "filepath": "C://LIA2025LiU//Exam1//Project//Project//ExamFeb//Data//wine_fraud.csv",
-    "target_column": "quality",
+    "filepath": "C://LIA2025LiU//Exam1//Project//Project//ExamFeb//Data//sonar.all-data.csv",
+    "target_column": "Label",
     "test_size": 0.2,
     "val_size": 0.1,
     "random_state": 0,
-    "dummy": true
+    "dummy": false
   },
 
   "preprocessor": {
     "scaler": true,
     "dummy": true,
-    "categorical_columns": "type"
+    "categorical_columns": null
   },
 
   "save": {
@@ -53,7 +53,7 @@
 
     {
       "name": "KerasClassifier",
-      "type": "keras",
+      "type": "keras_classifier",
       "build_mode": "default",
       "scaler": true,
       "epochs": 30,
@@ -70,11 +70,11 @@
 
     {
       "name": "KerasCustom",
-      "type": "keras",
+      "type": "keras_classifier",
       "build_mode": "config",
       "scaler": true,
-      "epochs": 50,
-      "batch_size": 32,
+      "epochs": 150,
+      "batch_size": 16,
       "learning_rate": 0.0005,
       "output_activation": null,
       "loss": null,
@@ -103,18 +103,19 @@
         {
           "type": "Dropout",
           "rate": 0.25
-        },
+        }]},
         {
         "name": "KerasConv1D",
-        "type": "keras",
+        "type": "keras_classifier",
         "build_mode": "config",
         "scaler": true,
         "epochs": 30,
-        "batch_size": 64,
+        "batch_size": 16,
         "learning_rate": 0.001,
+        "callbacks": true,
         "fit_predict_on": "test",
         "layers": [
-          {"type": "Reshape", "target_shape": [128, 1]},
+
           {"type": "Conv1D", "filters": 64, "kernel_size": 5, "activation": "relu", "padding": "same"},
           {"type": "MaxPooling1D", "pool_size": 2},
           {"type": "Conv1D", "filters": 128, "kernel_size": 3, "activation": "relu", "padding": "same"},
@@ -123,11 +124,30 @@
           {"type": "Dense", "units": 128, "activation": "relu"},
           {"type": "Dropout", "rate": 0.4}
         ]
-      }
-
+      }],
+      "callbacks": [
+    {
+    "type": "ReduceLROnPlateau",
+    "monitor": "val_loss",
+    "factor": 0.5,
+    "patience": 75,
+    "min_delta": 0.001,
+    "min_lr": 1e-6,
+    "verbose": 1
+  },
+  {
+    "type": "EarlyStopping",
+    "monitor": "val_loss",
+    "mode": "min",
+    "patience": 200,
+    "min_delta": 0.0001,
+    "verbose": 1,
+    "restore_best_weights": true
+  }
+]
         
-      ],
+      ,
       "notes": "Example configurable MLP. Final output layer is added automatically by the model based on number of classes."
-    }
-  ]
+    
+  
 }
