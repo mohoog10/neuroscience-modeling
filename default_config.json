@@ -1,7 +1,7 @@
 {
   "data": {
-    "filepath": "C://LIA2025LiU//Exam1//Project//Project//ExamFeb//Data//sonar.all-data.csv",
-    "target_column": "Label",
+    "filepath": "data/2022-06-17_ST16-05_semicontrolled_block-order01_merged_data.csv",
+    "target_column": "Nerve_spike",
     "test_size": 0.2,
     "val_size": 0.1,
     "random_state": 0,
