@@ -107,7 +107,7 @@
         {
         "name": "KerasConv1D",
         "type": "keras_classifier",
-        "build_mode": "config",
+        "build_mode": "grid",
         "scaler": true,
         "epochs": 30,
         "batch_size": 16,

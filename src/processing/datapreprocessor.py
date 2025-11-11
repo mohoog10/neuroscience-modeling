@@ -3,6 +3,11 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
+import glob
+import os
+
+
+
 
 class DataPreprocessor:
     """
@@ -95,8 +100,8 @@ class DataPreprocessor:
             return X
         arr = X[self._numeric_columns].values
         scaled = self._scaler.transform(arr)
-        X_loc = X.copy()
-        X_loc.loc[:, self._numeric_columns] = scaled
+        X_loc = X.copy().astype(float)
+        X_loc.loc[:, self._numeric_columns] = scaled.astype(float)
         return X_loc
 
     def prepare_features(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -177,7 +182,23 @@ class DataPreprocessor:
         else:
             return X_train, y_train, X_val, y_val, X_test, y_test
 
+    def split_files(self,X, y):
+        # First split off test
+        test_size = float(self.config.get("test_size", 0.2))
+        val_size = float(self.config.get("val_size", 0.1))
+        random_state = self.config.get("random_state", None)
+        X_temp, X_test, y_temp, y_test = train_test_split(
+            X, y, test_size=test_size, random_state=random_state, shuffle=True
+        )
 
+        # Then split train/val
+        rel_val = val_size / (1.0 - test_size)
+        X_train, X_val, y_train, y_val = train_test_split(
+            X_temp, y_temp, test_size=rel_val, random_state=random_state, shuffle=True
+        )
+
+        return X_train, y_train, X_val, y_val, X_test, y_test
+    
     def transform_new(self, df_new: pd.DataFrame) -> Union[np.ndarray, pd.DataFrame]:
         """
         Apply stored preprocessing (dummies + scaler) to new data.
@@ -212,4 +233,70 @@ class DataPreprocessor:
     # convenience shorthand
     def fit_split(self) -> Tuple[np.ndarray, Optional[np.ndarray], np.ndarray, Optional[np.ndarray], np.ndarray, Optional[np.ndarray]]:
         return self.split()
+    
+    def label_func(self):
+        return np.random.randint(2)
+    def load_all_csvs(self,label_func=label_func):
+        """
+        Loads all CSVs in a directory. Each CSV is one sample.
+        Returns X (list of arrays) and y (list of labels).
+        """
+        if self.config["filepath"] is not None:
+            X, y = [], []
+            for file in glob.glob(os.path.join(self.config['filepath'], "*.csv")):
+                df = pd.read_csv(file)
+                X_df, y_file = self._select_multifile_columns(df)
+                X_df = self.prepare_multifile_features(X_df)
+                X.append(X_df.values)
+                if y_file is not None:  # shape (timesteps, features)
+                    y.append(y_file.values[0])
+                else:
+                    if label_func:
+                        y.append(self.label_func())  # derive label from filename or content
+            return np.array(X, dtype=object), np.array(y) if y else None
 
+        else:
+            raise ValueError("Either 'df' or 'filepath' must be provided in config")
+
+
+    def prepare_multifile_features(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Apply preprocessing to features:
+        - One-hot encode categoricals
+        - Scale numeric features
+        Returns: scaled DataFrame
+        """
+        df_proc = df.copy()
+
+        # Infer categorical columns
+        cats = self._infer_categoricals(df_proc)
+        self._categorical_columns = cats
+
+        # One-hot encode categoricals
+        if self.config.get("dummy", True) and cats:
+            df_proc = pd.get_dummies(df_proc, columns=cats, drop_first=False)
+
+        # Record final feature columns
+        self._feature_columns = df_proc.columns.tolist()
+
+        # Fit + apply scaler
+        self._fit_scaler(df_proc)
+        df_scaled = self._apply_scaler(df_proc)
+
+        return df_scaled
+
+    def _select_multifile_columns(self, df: pd.DataFrame):
+        """
+        Separate features and target from a single DataFrame.
+        Returns: X_df (features), y (target series or None)
+        """
+        target_col = self.config.get("target_column", None)
+
+        if target_col and target_col in df.columns:
+            y = df[target_col]
+            X_df = df.drop(columns=[target_col])
+        else:
+            y = None
+            X_df = df
+
+        return X_df, y

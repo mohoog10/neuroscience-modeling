@@ -33,7 +33,7 @@ class KMeansModel(Model):
         self._saved_split_predictions = {"train": None, "val": None, "test": None}  
         super().__init__()
 
-    def build(self, model: Any) -> bool:
+    def build(self, model: Any, return_estimator: bool =False) -> bool:
         """
         Accepts either:
         - a dict with config keys (recommended), or
@@ -41,6 +41,11 @@ class KMeansModel(Model):
 
         Returns True on successful build.
         """
+        if return_estimator:
+            self.model = KMeans()
+            self.is_built = True
+            return True
+
         if isinstance(model, dict):
             # merge provided config
             self.config.update(model)

@@ -13,7 +13,13 @@ class LogisticRegressionModel(Model):
         self._saved_split_predictions = {"train": None, "val": None, "test": None}
         self.is_built = False
 
-    def build(self, model: Any) -> bool:
+    def build(self, model: Any, return_estimator:bool=False) -> bool:
+
+        if return_estimator:
+            self.model = LogisticRegression()
+            self.is_built = True
+            return True
+        
         if isinstance(model, dict):
             self.config.update(model)
             C = float(self.config.get("C", 1.0))

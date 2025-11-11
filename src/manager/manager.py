@@ -9,7 +9,9 @@ from ..interface.interface import Interface
 from ..registry.model_registry import ModelRegistry
 from ..models.model import Model
 from ..processing.datapreprocessor import DataPreprocessor
-
+#from sklearn.model_selection import GridSearchCV
+import json
+from copy import deepcopy
 
 class Manager:
     """
@@ -80,7 +82,7 @@ class Manager:
         print(f"Model '{model_name}' selected successfully")
         return True
     
-    def build_model(self, config: Optional[Dict] = None) -> bool:
+    def build_model(self, config: Optional[Dict] = None,return_estimator=False) -> bool:
         """
         Build the currently selected model
         
@@ -103,7 +105,8 @@ class Manager:
 
 
         build_config = config if config else self.model_instance_config
-        return self.current_model.build(build_config)
+
+        return self.current_model.build(build_config,return_estimator)
     
     def train_model(self) -> Dict:
         """
@@ -157,32 +160,21 @@ class Manager:
         
         return self.current_model.predict()
     
-    def run_pipeline(self, model_name: str, mode: str = 'train', config: Optional[Dict] = None) -> Dict:
+    def run_pipeline(self, model_name: str = None, mode: str = 'train', config: Optional[Dict] = None) -> Dict:
         """
-        Run a complete pipeline: select, build, and execute
-        
-        Args:
-            model_name: Name of the model to use
-            mode: Operation mode ('train', 'validate', 'test', 'predict')
-            config: Optional configuration
-            
-        Returns:
-            dict: Pipeline results
+        Run a complete pipeline: either gridsearch across all models or a single model.
         """
+
+        # === existing single-model path ===
         print(f"\n{'='*50}")
         print(f"Running Pipeline: {model_name} in {mode} mode")
         print(f"{'='*50}\n")
 
-        # Select and build model
         if not self.select_model(model_name, config):
             return {"error": "Model selection failed"}
-        
         if not self.build_model():
             return {"error": "Model build failed"}
- 
 
-        # Execute based on mode
-        results = {}
         if mode == 'train':
             results = self.train_model()
         elif mode == 'validate':
@@ -193,12 +185,88 @@ class Manager:
             results = self.predict_with_model()
         else:
             results = {"error": f"Unknown mode: {mode}"}
-        
+
         print(f"\n{'='*50}")
         print(f"Pipeline completed for {model_name}")
         print(f"{'='*50}\n")
-        
         return results
+
+    def run_gridsearch_pipeline(self, cfg: Dict,models_cfg: list[Dict]) -> Dict:
+        from sklearn.pipeline import Pipeline
+        from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler, PolynomialFeatures
+        from sklearn.model_selection import GridSearchCV
+        gs_cfg = cfg.get('gridsearch',{})
+        cv = gs_cfg.get("cv", 3)
+        scoring = gs_cfg.get("scoring", "accuracy")
+        n_jobs = gs_cfg.get("n_jobs", -1)
+        verbose = gs_cfg.get("verbose", 1)
+
+        pre_grid = gs_cfg.get("preprocessing_grid", {})
+        scaler_opts = pre_grid.get("scaler", [False])
+        poly_opts = pre_grid.get("poly_degree", [False])
+
+        results = {}
+        for model_cfg in models_cfg:
+            grid = model_cfg.get("param_grid")
+            if not grid:
+                continue
+
+            name = model_cfg["type"]
+            print(f"\n{'='*50}\nGridSearchCV for {name}\n{'='*50}\n")
+            model_cfg["input_dim"] = model_cfg.get('X_train').shape[1]
+            self.select_model(name, model_cfg)   # select this model
+            self.build_model(return_estimator=True)  # adapt build_model to optionally return raw estimator
+            estimator = self.current_model.model
+
+            # Build pipeline
+            pipe = Pipeline([
+                ("scaler", "passthrough"),
+                ("poly", "passthrough"),
+                ("model", estimator)
+            ])
+
+            # Map string scalers to actual objects
+            scaler_map = {
+                "standard": StandardScaler(),
+                "minmax": MinMaxScaler(),
+                "robust": RobustScaler()
+            }
+
+            # Build combined param grid
+            combined_grid = []
+
+            for sc in scaler_opts:
+                for deg in poly_opts:
+                    base = {}
+                    # scaler choice
+                    base["scaler"] = [scaler_map[sc]] if sc else ["passthrough"]
+                    # polynomial choice
+                    base["poly"] = [PolynomialFeatures(degree=deg, include_bias=False)] if deg else ["passthrough"]
+
+                    # model params (prefix with "model__")
+                    model_grid = {f"model__{k}": v for k, v in grid.items()}
+
+                    # merge
+                    combined_grid.append({**base, **model_grid})
+            #print(combined_grid)
+            gs = GridSearchCV(
+                estimator=pipe,
+                param_grid=combined_grid,
+                cv=cv,
+                scoring=scoring,
+                n_jobs=n_jobs,
+                verbose=verbose,error_score='raise')
+            gs.fit(model_cfg.get('X_train'), model_cfg.get('y_train'))
+
+            results[name] = {
+                "best_score": gs.best_score_,
+                "best_params": gs.best_params_,
+                "cv_results": gs.cv_results_
+            }
+
+        return results
+
+
     
     def get_available_models(self) -> list:
         """
@@ -297,3 +365,25 @@ class Manager:
             raise RuntimeError("Loaded model has no predict method")
 
         return {"predictions": preds, "meta": meta}
+    
+    def run_tuning(self, model_name: str = None, mode: str = 'train', config: Optional[Dict] = None) -> Dict:
+        """
+        Run a complete pipeline: either gridsearch across all models or a single model.
+        """
+
+        # === existing single-model path ===
+        print(f"\n{'='*50}")
+        print(f"Running Keras hyperparameter tuning")
+        print(f"{'='*50}\n")
+
+        if not self.select_model(model_name, config):
+            return {"error": "Model selection failed"}
+        if not self.build_model():
+            return {"error": "Model build failed"}
+
+        self.current_model.run_optuna_search()
+
+        print(f"\n{'='*50}")
+        print(f"Tuning complete for {model_name}: {config.get('name','')}")
+        print(f"{'='*50}\n")
+        #return results

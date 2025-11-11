@@ -1,0 +1,70 @@
+{
+  "data": {
+    "filepath": "C://LIA2025LiU//Exam1//Project//Project//ExamFeb//Data//sonar.all-data.csv",
+    "target_column": "Label",
+    "test_size": 0.2,
+    "val_size": 0.1,
+    "random_state": 0,
+    "dummy": true
+  },
+
+  "preprocessor": {
+    "scaler": true,
+    "dummy": true,
+    "categorical_columns": null
+  },
+
+  "save": {
+    "enabled": true,
+    "dir": "artifacts",
+    "overwrite": false
+  },
+
+
+    "gridsearch": {
+    "enabled": true,
+    "cv": 3,
+    "scoring": "accuracy",
+    "n_jobs": 1,
+    "verbose": 1,
+    "preprocessing_grid": {
+        "scaler": ["standard", "minmax", false],
+        "poly_degree": [false, 2, 3]
+    
+    }
+
+  },
+
+  "models": [
+        {
+      "name": "RandomForest",
+      "type": "random_forest",
+      "n_estimators": 100,
+      "max_depth": null,
+      "random_state": 0,
+      "scaler": false,
+      "fit_predict_on": "val",
+      "param_grid": {
+        "n_estimators": [50, 100, 200],
+        "max_depth": [null, 10, 20]
+      }
+    },
+    {
+      "name": "KerasClassifier",
+      "type": "keras_classifier",
+      "build_mode": "default",
+      "scaler": true,
+      "epochs": 30,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "fit_predict_on": "val",
+      "param_grid": {
+        "fit__epochs": [10, 30],
+        "fit__batch_size": [32, 64],
+        "model__learning_rate": [0.001, 0.0005],
+        "model__n_classes": [2],
+        "model__input_dim":[60]
+      }
+    }
+  ]
+}

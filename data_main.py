@@ -90,11 +90,12 @@ def main():
     manager = Manager(interface=cli, model_registry=registry, preprocessor=pre)
 
     # -- Fit / split once, attach splits
-    try:
-        X_train, y_train, X_val, y_val, X_test, y_test = pre.fit_split()
-    except Exception as exc:
-        print("Data preprocessing / split failed:", exc)
-        return
+    #try:
+    X,y = pre.load_all_csvs()
+    X_train, y_train, X_val, y_val, X_test, y_test = pre.split_files(X,y)
+    #except Exception as exc:
+        #print("Data preprocessing / split failed:", exc)
+        #return
 
     splits = {
         "X_train": X_train, "y_train": y_train,
@@ -123,14 +124,9 @@ def main():
             selected_cfg["name"] = model_name
     # inject runtime splits and preprocessor
     runtime_cfg = inject_splits_and_preprocessor(selected_cfg, pre, splits)
-
-    results = manager.run_pipeline(selected_cfg['type'], mode=mode, config=runtime_cfg)
-    print("Training results:", results)
-    pred_res = manager.run_pipeline(selected_cfg['type'], mode="predict", config=runtime_cfg)
-    print("Prediction results:", pred_res)
-
-    val_res = manager.run_pipeline(selected_cfg['type'], mode="validate", config=runtime_cfg)
-    print("Validation results:", val_res)
+    print(selected_cfg.get('build_mode'))
+    if selected_cfg.get('build_mode') == 'grid':
+        manager.run_tuning(selected_cfg['type'], mode=mode, config=runtime_cfg)
 
 if __name__ == "__main__":
     main()

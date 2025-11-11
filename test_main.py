@@ -10,7 +10,7 @@ from src.models.kmeansmodel import KMeansModel
 from src.models.logistic_model import LogisticRegressionModel
 from src.models.rfc_model import RandomForestClassifierModel
 from src.models.keras_model import KerasClassifierModel
-
+from util_functions import *
 
 def load_config(path: str) -> dict:
     p = Path(path)
@@ -101,36 +101,18 @@ def main():
         "X_val": X_val, "y_val": y_val,
         "X_test": X_test, "y_test": y_test
     }
-
-    # Select the model config dict by name from combined_config["models"] if present,
-    # otherwise use combined_config["model"] for backward compatibility.
-    models_cfg_list = combined_config.get("models")
-    if models_cfg_list:
-        selected_cfg = None
-        for m in models_cfg_list:
-            if m.get("name") == model_name:
-                selected_cfg = m
-                break
-        if selected_cfg is None:
-            print(f"Model '{model_name}' not found amongst config models. Available:", [m.get("name") for m in models_cfg_list])
-            return
+    grid = combined_config.get('gridsearch', None)
+    if grid:
+        if grid.get('enabled'):
+            gridsearch_run(combined_config,mode,
+                        manager,pre,splits)
+        else:
+            one_model_run(combined_config,model_name,
+                        mode,manager,pre,splits)
     else:
-        # backward compat: single model under "model" key
-        selected_cfg = combined_config.get("model", {})
-        # if no name present, ensure manager can still select via model_name
-        if "name" not in selected_cfg:
-            selected_cfg = dict(selected_cfg)
-            selected_cfg["name"] = model_name
-    # inject runtime splits and preprocessor
-    runtime_cfg = inject_splits_and_preprocessor(selected_cfg, pre, splits)
+        one_model_run(combined_config,model_name,
+                        mode,manager,pre,splits)
 
-    results = manager.run_pipeline(selected_cfg['type'], mode=mode, config=runtime_cfg)
-    print("Training results:", results)
-    pred_res = manager.run_pipeline(selected_cfg['type'], mode="predict", config=runtime_cfg)
-    print("Prediction results:", pred_res)
-
-    val_res = manager.run_pipeline(selected_cfg['type'], mode="validate", config=runtime_cfg)
-    print("Validation results:", val_res)
 
 if __name__ == "__main__":
     main()

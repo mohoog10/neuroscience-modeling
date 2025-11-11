@@ -18,7 +18,7 @@ class Model(ABC):
         self.is_tested = False
     
     @abstractmethod
-    def build(self, model: Any) -> bool:
+    def build(self, model: Any,return_estimator: bool = False) -> bool:
         """
         Build the model
         
