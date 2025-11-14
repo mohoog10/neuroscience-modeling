@@ -69,3 +69,7 @@ class Model(ABC):
             dict: Test results
         """
         pass
+    
+    @abstractmethod
+    def run_optuna_search(self,n_trials:int):
+        pass

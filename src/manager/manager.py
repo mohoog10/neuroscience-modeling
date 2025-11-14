@@ -75,7 +75,7 @@ class Manager:
             return False
         
         self.current_model = self.model_registry.get_model(model_name)
-        
+        self.model_selected_name = model_name
         if config:
             self.model_instance_config = config
         
@@ -366,22 +366,23 @@ class Manager:
 
         return {"predictions": preds, "meta": meta}
     
-    def run_tuning(self, model_name: str = None, mode: str = 'train', config: Optional[Dict] = None) -> Dict:
+    def run_tuning(self, model_name: str = None, mode: str = 'train', config: Optional[Dict] = None
+                   ,n_trials: int = 10) -> Dict:
         """
         Run a complete pipeline: either gridsearch across all models or a single model.
         """
 
         # === existing single-model path ===
         print(f"\n{'='*50}")
-        print(f"Running Keras hyperparameter tuning")
+        print(f"Hyperparam tuning for {model_name}: {config.get('name','')} ")
         print(f"{'='*50}\n")
 
         if not self.select_model(model_name, config):
             return {"error": "Model selection failed"}
         if not self.build_model():
             return {"error": "Model build failed"}
-
-        self.current_model.run_optuna_search()
+        
+        self.current_model.run_optuna_search(n_trials=n_trials)
 
         print(f"\n{'='*50}")
         print(f"Tuning complete for {model_name}: {config.get('name','')}")

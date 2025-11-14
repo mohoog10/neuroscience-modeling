@@ -1,8 +1,8 @@
 {
   "data": {
-    "filepath": "C://LIA2025LiU//2022-06-17_ST16-05//Downsampled",
-    "target_column": null,
-    "test_size": 0,
+    "filepath": "C://LIA2025LiU//2022-06-17_ST16-05//simulated_dataset",
+    "target_column": "target",
+    "test_size": 0.2,
     "val_size": 0.1,
     "random_state": 0,
     "dummy": false
@@ -21,6 +21,16 @@
   },
 
   "models": [
+        {
+      "name": "RandomForest",
+      "type": "random_forest",
+      "build_mode":"grid",
+      "n_estimators": 100,
+      "max_depth": null,
+      "random_state": 0,
+      "scaler": false,
+      "fit_predict_on": "val"
+    },
         {
         "name": "KerasConv1D",
         "type": "keras_classifier",
@@ -41,7 +51,72 @@
           {"type": "Dense", "units": 128, "activation": "relu"},
           {"type": "Dropout", "rate": 0.4}
         ]
-      }],
+      },
+      {
+  "name": "KerasRNN",
+  "type": "keras_classifier",
+  "build_mode": "grid",
+  "scaler": true,
+  "epochs": 30,
+  "batch_size": 16,
+  "learning_rate": 0.001,
+  "callbacks": true,
+  "fit_predict_on": "val",
+  "layers": [
+    {"type": "Masking", "mask_value": -99999.0},
+    {"type": "LSTM", "units": 64, "return_sequences": true, "dropout": 0.3, "recurrent_dropout": 0.3},
+    {"type": "LSTM", "units": 128, "return_sequences": false, "dropout": 0.3, "recurrent_dropout": 0.3},
+    {"type": "Dense", "units": 128, "activation": "relu"},
+    {"type": "Dropout", "rate": 0.4}
+  ]
+}
+,{
+  "name": "KerasTransformer",
+  "type": "keras_classifier",
+  "build_mode": "grid",
+  "scaler": true,
+  "epochs": 30,
+  "batch_size": 16,
+  "learning_rate": 0.001,
+  "callbacks": true,
+  "fit_predict_on": "val",
+  "layers": [
+    {"type": "Masking", "mask_value": -1.0},
+
+    {"type": "MultiHeadAttention", "num_heads": 4, "key_dim": 64},
+    {"type": "Dropout", "rate": 0.2},
+    {"type": "LayerNormalization", "epsilon": 1e-6},
+
+    {"type": "Dense", "units": 128, "activation": "relu"},
+    {"type": "Dropout", "rate": 0.3},
+    {"type": "LayerNormalization", "epsilon": 1e-6},
+
+    {"type": "GlobalAveragePooling1D"},
+    {"type": "Dense", "units": 128, "activation": "relu"},
+    {"type": "Dropout", "rate": 0.4}
+  ]
+},
+{
+  "name": "KerasGRU",
+  "type": "keras_classifier",
+  "build_mode": "grid",
+  "scaler": true,
+  "epochs": 30,
+  "batch_size": 16,
+  "learning_rate": 0.001,
+  "callbacks": true,
+  "fit_predict_on": "val",
+  "layers": [
+    {"type": "Masking", "mask_value": -99999.0},
+    {"type": "GRU", "units": 64, "return_sequences": true, "dropout": 0.3, "recurrent_dropout": 0.3},
+    {"type": "GRU", "units": 128, "return_sequences": false, "dropout": 0.3, "recurrent_dropout": 0.3},
+    {"type": "Dense", "units": 128, "activation": "relu"},
+    {"type": "Dropout", "rate": 0.4}
+  ]
+}
+
+]
+,
       "callbacks": [
     {
     "type": "ReduceLROnPlateau",
