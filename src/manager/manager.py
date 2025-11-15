@@ -61,11 +61,13 @@ class Manager:
             bool: Success status
         """
         print(f"Selecting model: {model_name}")
-        
-        # reuse existing built instance if same name
-        if getattr(self, "model_selected_name", None) == model_name and self.current_model is not None:
+        variant_name = (config or {}).get("name", model_name)  # e.g., KerasRNN
+        instance_key = f"{model_name}:{variant_name}"
+        print(f"Model name: {variant_name}")
+        # Reuse only if same instance key AND already built
+        if getattr(self, "model_selected_key", None) == instance_key and self.current_model is not None:
             if getattr(self.current_model, "is_built", False):
-                print(f"Reusing already-built model instance for '{model_name}'")
+                print(f"Reusing already-built model instance for '{instance_key}'")
                 if config:
                     self.model_instance_config = config
                 return True
@@ -73,13 +75,16 @@ class Manager:
         if not self.model_registry.model_exists(model_name):
             print(f"Error: Model '{model_name}' not found")
             return False
-        
+
+        # Fetch a fresh model class from the registry and bind the specific config/variant
         self.current_model = self.model_registry.get_model(model_name)
-        self.model_selected_name = model_name
+        self.model_selected_key = instance_key
+        self.model_selected_name = variant_name  # for reporting/filenames
+
         if config:
             self.model_instance_config = config
-        
-        print(f"Model '{model_name}' selected successfully")
+
+        print(f"Model '{model_name}' (variant '{variant_name}') selected successfully")
         return True
     
     def build_model(self, config: Optional[Dict] = None,return_estimator=False) -> bool:

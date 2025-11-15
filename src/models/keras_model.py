@@ -598,9 +598,7 @@ class KerasClassifierModel(Model):
             model.compile(optimizer=opt, loss=loss, metrics=compile_metrics)
             self.model = model
             return model
-        
-    import optuna
-    import pandas as pd
+
 
     def run_optuna_search(self,n_trials=10):
         """
@@ -843,6 +841,7 @@ class KerasClassifierModel(Model):
 
 
 
+
     def _save_classification_report_and_confusion(self, model, X_val, y_val, model_type):
         """
         Evaluate the best model on validation data, save classification report and confusion matrix heatmap.
@@ -855,7 +854,7 @@ class KerasClassifierModel(Model):
         y_pred_probs = model.predict(X_val,batch_size=32,verbose=0)
         y_pred = y_pred_probs.argmax(axis=1)
         y_true = y_val.argmax(axis=1) if y_val.ndim > 1 else y_val
-        print(self._index_to_label) 
+ 
         if self._index_to_label is None:
             label_names = [str(i) for i in np.unique(y_true)]
         else:

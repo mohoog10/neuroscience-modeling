@@ -126,7 +126,7 @@ def main():
 
         for idx, selected_cfg in enumerate(models_cfg_list, start=1):
             model_start = time.time()  # start model timer
-
+            registry.clear_instances()
             # inject runtime splits and preprocessor
             runtime_cfg = inject_splits_and_preprocessor(selected_cfg, pre, splits)
             print(selected_cfg['name'],runtime_cfg['name'],selected_cfg['type'])
@@ -145,6 +145,7 @@ def main():
             # update progress bar
             progress_bar(idx, total_models)
             print(f"  → Model '{selected_cfg['name']}' finished in {elapsed_model:.2f} seconds")
+            
 
         # end total timer
         total_end = time.time()
@@ -161,9 +162,9 @@ def main():
 
         if selected_cfg.get('build_mode') == 'grid':
             start = time.time()
-            manager.run_tuning(selected_cfg['type'], mode=mode, config=runtime_cfg, n_trials=12)
+            manager.run_tuning(selected_cfg['type'], mode=mode, config=runtime_cfg, n_trials=8)
             end = time.time()
             print(f"Model '{selected_cfg['name']}' finished in {end-start:.2f} seconds.")
-            
+
 if __name__ == "__main__":
     main()
