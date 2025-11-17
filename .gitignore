@@ -44,6 +44,7 @@ env/
 Thumbs.db
 
 # Project specific
+results/
 outputs/
 data/
 *.csv
